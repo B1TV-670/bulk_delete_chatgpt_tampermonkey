@@ -1,5 +1,7 @@
 # Bulk Delete Conversations for ChatGPT (Tampermonkey Script)
 
+![Screenshot](https://github.com/B1TV-670/bulk_delete_chatgpt_tampermonkey/blob/main/screenshot.png?raw=true)
+
 This is a Tampermonkey script that adds a bulk delete feature to the ChatGPT website. It works on both Firefox and Chrome using the Tampermonkey extension.
 
 ## Features
