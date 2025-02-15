@@ -1,4 +1,4 @@
-# Bulk Delete Conversations for ChatGPT (Tampermonkey Script)
+# Bulk Delete Conversations for ChatGPT (Tampermonkey Script firefox and chrome)
 
 ![Screenshot](https://github.com/B1TV-670/bulk_delete_chatgpt_tampermonkey/blob/main/screenshot.png?raw=true)
 
