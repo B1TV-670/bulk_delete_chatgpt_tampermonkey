@@ -1,15 +1,3 @@
-// ==UserScript==
-// @name         bulk_delete_chatgpt
-// @namespace    http://tampermonkey.net/
-// @version      0.3
-// @description  Add bulk delete UI to chat gpt
-// @author       Shmuel Kamensky
-// @match        https://chatgpt.com/*
-// @grant        none
-// @downloadURL  https://raw.githubusercontent.com/skamensky/tampermonkeyscripts/master/src/chatgpt_bulk_delete.js
-// @updateURL    https://raw.githubusercontent.com/skamensky/tampermonkeyscripts/master/src/chatgpt_bulk_delete.js
-// ==/UserScript==
-
 (function () {
   "use strict";
 
@@ -263,7 +251,7 @@ let allInputElements = [];
       message = "This will delete the selected chats. Are you sure you want to delete the selected chats?";
     }
     dialogElement.innerHTML = `
-    <div role="dialog" id="radix-:r1t:" aria-describedby="radix-:r1v:" aria-labelledby="radix-:r1u:" data-state="open" class="relative col-auto col-start-2 row-auto row-start-2 w-full rounded-lg text-left shadow-xl transition-all left-1/2 -translate-x-1/2 bg-white dark:bg-gray-900 max-w-md" tabindex="-1" style="pointer-events: auto;"><div class="px-4 pb-4 pt-5 sm:p-6 flex items-center justify-between border-b border-black/10 dark:border-white/10"><div class="flex"><div class="flex items-center"><div class="flex flex-col gap-1 text-center sm:text-left"><h2 id="radix-:r1u:" as="h3" class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">Delete chat?</h2></div></div></div></div><div class="p-4 sm:p-6 sm:pt-4">
+    <div role="dialog" id="radix-:r1t:" aria-describedby="radix-:r1v:" aria-labelledby="radix-:r1u:" data-state="open" class="relative col-auto col-start-2 row-auto row-start-2 w-full rounded-lg text-left shadow-xl transition-all left-1/2 -translate-x-1/2 bg-white dark:bg-gray-900 max-w-md" tabindex="-1" style="pointer-events: auto;position: absolute;right: 30%;"><div class="px-4 pb-4 pt-5 sm:p-6 flex items-center justify-between border-b border-black/10 dark:border-white/10"><div class="flex"><div class="flex items-center"><div class="flex flex-col gap-1 text-center sm:text-left"><h2 id="radix-:r1u:" as="h3" class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">Delete chat?</h2></div></div></div></div><div class="p-4 sm:p-6 sm:pt-4">
     ${message}
     <div id="customErrorDiv"></div>
     <br>
