@@ -1,3 +1,13 @@
+// ==UserScript==
+// @name         bulk_delete_chatgpt
+// @namespace    http://tampermonkey.net/
+// @version      0.3
+// @description  Add bulk delete UI to chat gpt
+// @author       Base by Shmuel Kamensky, Updated by B1TV-670
+// @match        https://chatgpt.com/*
+// @grant        none
+// ==/UserScript==
+
 (function () {
   "use strict";
 
