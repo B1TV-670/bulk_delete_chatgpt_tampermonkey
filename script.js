@@ -6,6 +6,8 @@
 // @author       Base by Shmuel Kamensky, Updated by B1TV-670
 // @match        https://chatgpt.com/*
 // @grant        none
+// @downloadURL  https://raw.githubusercontent.com/B1TV-670/bulk_delete_chatgpt_tampermonkey/refs/heads/main/script.js
+// @updateURL    https://raw.githubusercontent.com/B1TV-670/bulk_delete_chatgpt_tampermonkey/refs/heads/main/script.js
 // ==/UserScript==
 
 (function () {
@@ -327,7 +329,7 @@ const addCustomButtons = () => {
             <div id="customOpenBulkDeleteDialog">
                 <a
                     class="flex px-3 min-h-[44px] py-1 gap-3 transition-colors duration-200 dark:text-white cursor-pointer text-sm rounded-md border-2 border-transparent gizmo:min-h-0 hover:bg-gray-500/10 h-11 gizmo:h-10 gizmo:rounded-lg w-11 flex-shrink-0 items-center justify-center bg-white dark:bg-transparent"
-                    style="border-image: linear-gradient(45deg, blue, black) 1;">
+                    style="border-image: linear-gradient(45deg, #f00, #111313) 1;">
                     <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
                         stroke-linejoin="round" class="icon-sm" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -342,7 +344,7 @@ const addCustomButtons = () => {
             <div id="customCheckAllButton">
                 <a
                     class="flex px-3 min-h-[44px] py-1 gap-3 transition-colors duration-200 dark:text-white cursor-pointer text-sm rounded-md border-2 border-transparent gizmo:min-h-0 hover:bg-gray-500/10 h-11 gizmo:h-10 gizmo:rounded-lg w-11 flex-shrink-0 items-center justify-center bg-white dark:bg-transparent"
-                    style="border-image: linear-gradient(45deg, blue, black) 1;">
+                    style="border-image: linear-gradient(45deg, #0070ff, #111313) 1;">
                     <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
                         stroke-linejoin="round" class="icon-sm" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
                         <polyline points="3 6 5 6 21 6"></polyline>
