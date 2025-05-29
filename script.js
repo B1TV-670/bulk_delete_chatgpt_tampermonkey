@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         bulk_delete_chatgpt
 // @namespace    http://tampermonkey.net/
-// @version      0.3
-// @description  Add bulk delete UI to chat gpt
-// @author       Base by Shmuel Kamensky, Updated by B1TV-670
+// @version      1.2
+// @description  Add bulk delete UI to chat gpt (New UI)
+// @author       Base by Shmuel Kamensky, Updated by B1TV-670, Adapted for new UI
 // @match        https://chatgpt.com/*
 // @grant        none
 // @downloadURL  https://raw.githubusercontent.com/B1TV-670/bulk_delete_chatgpt_tampermonkey/refs/heads/main/script.js
@@ -12,6 +12,108 @@
 
 (function () {
   "use strict";
+
+    let allInputElements = [];
+
+  const style = document.createElement('style');
+  style.textContent = `
+  /* Gradient border buttons */
+  .gradient-border-btn-red {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background:
+      linear-gradient(#2d2d2d, #2d2d2d) padding-box,
+      linear-gradient(45deg, #f00, #111313) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .gradient-border-btn-blue {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background:
+      linear-gradient(#2d2d2d, #2d2d2d) padding-box,
+      linear-gradient(45deg, #00ffe7, #111313) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .gradient-border-btn-green {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background:
+      linear-gradient(#2d2d2d, #2d2d2d) padding-box,
+      linear-gradient(45deg, #00ff04, #111313) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .gradient-border-btn-yellow {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background:
+      linear-gradient(#2d2d2d, #2d2d2d) padding-box,
+      linear-gradient(45deg, #ffcb00, #111313) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  /* Checkbox styling */
+  .customCheckbox {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    margin-right: 8px;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(#e5e7eb, #e5e7eb) padding-box,
+      linear-gradient(45deg, #ffcb00, #111313) border-box;
+    position: relative;
+    cursor: pointer;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .dark .customCheckbox {
+    background:
+      linear-gradient(#374151, #374151) padding-box,
+      linear-gradient(45deg, #ffcb00, #111313) border-box;
+  }
+
+  .customCheckbox:checked::before {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  }
+
+  .dark .customCheckbox:checked::before {
+    color: #e5e7eb;
+  }
+
+.customCheckbox {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.customCheckbox:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.customCheckbox:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+  `;
+  document.head.appendChild(style);
 
   const globalData = {};
 
@@ -23,79 +125,134 @@
   };
 
 
-
   const checkBoxHandler = (e) => {
+    // Prevent navigation on click
     e.stopPropagation();
     e.preventDefault();
 
-    // hack. Without preventDefault each click of the checkbox reloads the page on firefox. I never discovered why.
-    // When preventing default the checkbox state does not persist to the DOM
-    // after the user clicks. We need to manually set the DOM state. However, doing it directly
-    // is rolled back by the browser. So we do it via setTimeout to make it work.
-    setTimeout(()=>{
-      e.target.checked=!e.target.checked;
-    },1)
+      console.error("CHECKBOX CHECKED");
+    const input = e.target;
+    const chatItem = input.closest("a[href*='/c/']");
+    if (!chatItem) return;
 
-    const liElement = e.target.closest("li");
-    const keys = Object.keys(liElement);
-    let chatObj = {};
-    for (const key in keys) {
-        if (keys[key].includes("reactProps")) {
-        const propsKey = keys[key];
-        if (liElement[propsKey].children && liElement[propsKey].children.props) {
-          if(!liElement[propsKey].children.props.conversation){
-            // the frontend has changed since we last updated this script. Make it clear that the extension does not work by disabling the checkbox.
-            e.target.checked = false;
-            e.target.disabled = true;
-            e.target.style.opacity = 0.5;
+    const href = chatItem.getAttribute("href");
+    const chatId = href.split("/c/")[1]?.split("?")[0];
+    const titleSpan = chatItem.querySelector(".truncate span");
+    const title = titleSpan ? titleSpan.textContent : "Untitled";
 
-            // TODO mark all checkboxes as disabled
-            globalData.extensionOutdated = true;
-            return;
-          }
-
-          const chatData = liElement[propsKey].children.props.conversation;
-          const textContent = chatData.title;
-          const chatId = chatData.id;
-          chatObj = {
-            id: chatId,
-            text: textContent,
-            projectionId: liElement.dataset.projectionId,
-          };
-        }
-      }
+    if (!chatId) {
+      input.checked = false;
+      input.disabled = true;
+      input.style.opacity = 0.5;
+      globalData.extensionOutdated = true;
+        console.error("NO CHAT ID FOUND");
+      return;
+    } else {
+console.error("CHAT ID FOUND!");
     }
-    if (chatObj.id) {
-      if (e.target.checked) {
-        globalData.selectedChats[chatObj.id] = chatObj;
-      } else {
-        delete globalData.selectedChats[chatObj.id];
+
+  let freshInput = null;
+  allInputElements.forEach(currentInput => {
+    if (currentInput.id === chatId) {
+      freshInput = currentInput;
+    }
+  });
+
+      if(!freshInput){
+          console.error("I REPLACED FRESH WITH OLD INPUT");
+          freshInput = input;
       }
+
+      if (e.type === "click") {
+
+      }
+
+    // Update selection based on checkbox state
+    if (freshInput.checked) {
+      globalData.selectedChats[chatId] = {
+        id: chatId,
+        text: title,
+        element: chatItem
+      };
+    } else {
+      delete globalData.selectedChats[chatId];
     }
   };
 
-let allInputElements = [];
+  const manuallyCheckCheckbox = (inputF) => {
+      inputF.checked = !inputF.checked;
+  };
 
   const addCheckboxesToChatsIfNeeded = () => {
-    // is a chat item and doesn't already have a checkbox
-    const chats = document.querySelectorAll(
-      'nav li:not([data-projection-id=""]):not(.customCheckbox)'
-    );
+    allInputElements = []; // Reset the array
+    const chats = document.querySelectorAll('a[href*="/c/"]');
+
     chats.forEach((chat) => {
-      if (chat.querySelector(".customCheckbox")) {
-        return;
+      if (chat.dataset.processed) return;
+      chat.dataset.processed = "true";
+
+      const container = chat.querySelector(".flex.min-w-0.grow.items-center.gap-2");
+      if (!container) return;
+
+      let inputElement = container.querySelector(".customCheckbox");
+
+      if (!inputElement) {
+        inputElement = document.createElement("input");
+        inputElement.setAttribute("type", "checkbox");
+        inputElement.setAttribute("class", "customCheckbox");
+        // Add both click and change event listeners
+        inputElement.addEventListener('change', checkBoxHandler);
+
+          const chatItem = chat;
+          if (chatItem) {
+              const href = chatItem.getAttribute("href");
+              const chatId = href.split("/c/")[1]?.split("?")[0];
+              const titleSpan = chatItem.querySelector(".truncate span");
+              const title = titleSpan ? titleSpan.textContent : "Untitled";
+
+              if (!chatId) {
+                  console.error("NO CHAT ID FOUND WHILE MOUNTING CHECKBOXES");
+              } else {
+                  console.error("CHAT ID FOUND WHILE MOUNTING CHECKBOXES");
+
+                  inputElement.id = chatId;
+                  container.insertBefore(inputElement, container.firstChild);
+
+
+    document.getElementById(chatId).onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+
+
+      // Toggle all checkboxes
+      allInputElements.forEach(input => {
+        if (input.id === chatId) {
+          input.checked = !input.checked;
+
+          // Manually trigger change event
+          const event = new Event('change', {
+            bubbles: true,
+            cancelable: true,
+          });
+          input.dispatchEvent(event);
+        }
+      });
+
+
+    };
+              }
+          }
+
       }
-      const inputElement = document.createElement("input");
-      inputElement.setAttribute("type", "checkbox");
-      inputElement.setAttribute("class", "customCheckbox");
-      inputElement.onclick = checkBoxHandler;
-      chat.querySelector("a").insertAdjacentElement("afterbegin", inputElement);
+
+      // Store reference to this checkbox
       allInputElements.push(inputElement);
     });
   };
+
   const closeDialog = () => {
     const dialogElement = document.getElementById("customDeleteDialogModal");
-    dialogElement.remove();
+    if (dialogElement) dialogElement.remove();
     const inputs = document.querySelectorAll(".customCheckbox");
     inputs.forEach((input) => {
       input.disabled = false;
@@ -110,7 +267,6 @@ let allInputElements = [];
         })
         .join(", ");
     } else {
-      // fallback
       return '"Chromium";v="118", "Google Chrome";v="118", "Not=A?Brand";v="99"';
     }
   };
@@ -124,7 +280,6 @@ let allInputElements = [];
   };
 
   const getToken = () => {
-    //https://chatgpt.com/api/auth/session
     return fetch("https://chatgpt.com/api/auth/session", {
       headers: {
         accept: "*/*",
@@ -180,7 +335,9 @@ let allInputElements = [];
 
   const setDialogError = (error) => {
     const errorDiv = document.getElementById("customErrorDiv");
-    errorDiv.innerHTML = `<span style="color:red;">${error}</span>`;
+    if (errorDiv) {
+      errorDiv.innerHTML = `<span style="color:red;">${error}</span>`;
+    }
   };
 
   const deleteSelectedChats = () => {
@@ -190,33 +347,33 @@ let allInputElements = [];
       return doDelete(chatId)
         .then((res) => {
           if (res.success || res.success === false) {
+            // Mark as deleted in UI
+            const chatElement = globalData.selectedChats[chatId].element;
+            if (chatElement) {
+              chatElement.style.opacity = "0.5";
+              chatElement.style.textDecoration = "line-through";
+            }
 
-            // remove from chats
-            const chatElement = document.querySelector(
-              `li[data-projection-id="${globalData.selectedChats[chatId].projectionId}"]`
-            );
-
-            // removing the elements breaks the react client state. We'll offer to do a page refresh instead.
-            // chatElement.closest("li").remove();
-
-            // keep globalData in sync
             delete globalData.selectedChats[chatId];
 
-            // strike through in dialog box and green
-            dialogChatElement.innerHTML = `<s>${dialogChatElement.innerHTML}</s>`;
-            dialogChatElement.style.color = "green";
-          } else {
+            if (dialogChatElement) {
+              dialogChatElement.innerHTML = `<s>${dialogChatElement.innerHTML}</s>`;
+              dialogChatElement.style.color = "green";
+            }
+          } else if (dialogChatElement) {
             dialogChatElement.innerHTML = `<span style="color:red;">Error deleting ${dialogChatElement.innerHTML}</span>`;
-            console.log("failure or unexpected response", res);
           }
         })
         .catch((err) => {
           console.log("unexpected doDelete failure", err);
-          dialogChatElement.innerHTML = `<span style="color:red;">Error deleting ${dialogChatElement.innerHTML}</span>`;
+          if (dialogChatElement) {
+            dialogChatElement.innerHTML = `<span style="color:red;">Error deleting ${dialogChatElement.innerHTML}</span>`;
+          }
         });
     };
+
     const deletePromises = selectedChatIds.map((chatId, index) => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         setTimeout(() => {
           resolve(doDeleteLocal(chatId));
         }, 100 * index);
@@ -225,21 +382,28 @@ let allInputElements = [];
 
     const done = () => {
       const dialogElement = document.getElementById("customDeleteDialog");
-      dialogElement.querySelector(".customCancelButton").innerHTML = "Close";
-      dialogElement.querySelector(".customDeleteButton").disabled = true;
+      if (dialogElement) {
+        const cancelBtn = dialogElement.querySelector(".customCancelButton");
+        if (cancelBtn) cancelBtn.innerHTML = "Close";
 
-      const refreshPageButton = document.createElement("button");
-      refreshPageButton.innerHTML = `<button class="btn relative btn-neutral customCancelButton" as="button"><div class="flex w-full gap-2 items-center justify-center">Refresh Page</div></button>`
-      refreshPageButton.onclick = () => {
-        window.location='https://chatgpt.com/';
-        window.location.reload();
+        const deleteBtn = dialogElement.querySelector(".customDeleteButton");
+        if (deleteBtn) deleteBtn.disabled = true;
+
+        const refreshPageButton = document.createElement("button");
+        refreshPageButton.innerHTML = `<button class="btn relative btn-neutral customCancelButton" as="button"><div class="flex w-full gap-2 items-center justify-center">Refresh Page</div></button>`;
+        refreshPageButton.onclick = () => {
+          window.location.reload();
+        };
+
+        const buttonsContainer = dialogElement.querySelector("#customBulkDeleteButtons");
+        if (buttonsContainer) {
+          buttonsContainer.appendChild(refreshPageButton);
+        }
       }
-      dialogElement.querySelector("#customBulkDeleteButtons").appendChild(refreshPageButton);
     };
+
     return Promise.all(deletePromises)
-      .then(() => {
-        done();
-      })
+      .then(done)
       .catch((err) => {
         console.log(err);
         done();
@@ -248,34 +412,41 @@ let allInputElements = [];
   };
 
   const showDeleteDialog = () => {
-    // disable inputs
     const inputs = document.querySelectorAll(".customCheckbox");
     inputs.forEach((input) => {
       input.disabled = true;
     });
-    const dialogElement = document.createElement("div");
 
+    const dialogElement = document.createElement("div");
     dialogElement.setAttribute("id", "customDeleteDialog");
-    let message = "";
-    if (Object.keys(globalData.selectedChats).length === 0) {
-      message = "No chats selected";
-    } else {
-      message = "This will delete the selected chats. Are you sure you want to delete the selected chats?";
-    }
+
+    let message = Object.keys(globalData.selectedChats).length === 0
+      ? "No chats selected"
+      : "This will delete the selected chats. Are you sure?";
+
     dialogElement.innerHTML = `
-    <div role="dialog" id="radix-:r1t:" aria-describedby="radix-:r1v:" aria-labelledby="radix-:r1u:" data-state="open" class="relative col-auto col-start-2 row-auto row-start-2 w-full rounded-lg text-left shadow-xl transition-all left-1/2 -translate-x-1/2 bg-white dark:bg-gray-900 max-w-md" tabindex="-1" style="pointer-events: auto;position: absolute;right: 30%;"><div class="px-4 pb-4 pt-5 sm:p-6 flex items-center justify-between border-b border-black/10 dark:border-white/10"><div class="flex"><div class="flex items-center"><div class="flex flex-col gap-1 text-center sm:text-left"><h2 id="radix-:r1u:" as="h3" class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">Delete chat?</h2></div></div></div></div><div class="p-4 sm:p-6 sm:pt-4">
-    ${message}
-    <div id="customErrorDiv"></div>
-    <br>
-    {SELECTED_CHATS}
-    <div class="mt-5 sm:mt-4" id="customBulkDeleteButtons"><div class="mt-5 flex flex-col gap-3 sm:mt-4 sm:flex-row-reverse"><button class="btn relative btn-danger customDeleteButton" as="button"><div class="flex w-full gap-2 items-center justify-center">Delete</div></button><button class="btn relative btn-neutral customCancelButton" as="button"><div class="flex w-full gap-2 items-center justify-center">Cancel</div></button></div></div></div></div>
+    <div role="dialog" class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-md left-1/2 -translate-x-1/2 p-4">
+      <div class="border-b border-black/10 dark:border-white/10 pb-4">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-200">Delete chat?</h2>
+      </div>
+      <div class="py-4">
+        ${message}
+        <div id="customErrorDiv" class="my-2"></div>
+        <br>
+        <div style="overflow: auto; max-height: 30vh;">
+           {SELECTED_CHATS}
+        </div>
+        <div class="mt-5 flex flex-col gap-3 sm:flex-row-reverse" id="customBulkDeleteButtons">
+          <button class="customDeleteButton px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+          <button class="customCancelButton px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400">Cancel</button>
+        </div>
+      </div>
+    </div>
     `;
 
     const formattedChatHTML = Object.values(globalData.selectedChats).map(
       (chat) => {
-        return `
-        <span id="custom${chat.id}"><strong>${chat.text}</strong></span>
-        `;
+        return `<div id="custom${chat.id}"><strong>${chat.text}</strong></div>`;
       }
     );
 
@@ -286,103 +457,139 @@ let allInputElements = [];
 
     const deleteSelectedChatsLocal = () => {
       if (!globalData.token) {
-        return getToken()
+        getToken()
           .then(() => {
             if (globalData.tokenError) {
               setDialogError("Error getting token. Please try again");
-              return;
             } else {
-              return deleteSelectedChats().catch((err) => {
-                console.log(err);
-                setDialogError("Error deleting chats. Please try again");
-              });
+              deleteSelectedChats();
             }
           })
           .catch((err) => {
-            console.log(err);
             setDialogError("Error getting token. Please try again");
           });
+      } else {
+        deleteSelectedChats();
       }
     };
-
 
     const modal = document.createElement("div");
     modal.setAttribute("id", "customDeleteDialogModal");
     modal.appendChild(dialogElement);
     modal.onclick = (event) => {
-      event.stopPropagation();
-      // if we're clicking within the #customDeleteDialog, don't run closeDialog
-      if (event.target.closest("#customDeleteDialog")) {
-        return;
+      if (!event.target.closest("#customDeleteDialog")) {
+        closeDialog();
       }
-      closeDialog();
-    }
-    modal.style=` display: block; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);`;
-    document.body.insertAdjacentElement("beforebegin", modal);
+    };
+    modal.style = "position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;";
+    document.body.appendChild(modal);
+
     dialogElement.querySelector(".customDeleteButton").onclick = deleteSelectedChatsLocal;
     dialogElement.querySelector(".customCancelButton").onclick = closeDialog;
   };
 
-const addCustomButtons = () => {
-    const html = `
-        <div id="customButtonsContainer" class="mb-1 flex flex-row gap-2">
-            <div id="customOpenBulkDeleteDialog">
-                <a
-                    class="flex px-3 min-h-[44px] py-1 gap-3 transition-colors duration-200 dark:text-white cursor-pointer text-sm rounded-md border-2 border-transparent gizmo:min-h-0 hover:bg-gray-500/10 h-11 gizmo:h-10 gizmo:rounded-lg w-11 flex-shrink-0 items-center justify-center bg-white dark:bg-transparent"
-                    style="border-image: linear-gradient(45deg, #f00, #111313) 1;">
-                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-                        stroke-linejoin="round" class="icon-sm" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                    <span class="sr-only">Bulk Delete Chats</span>
-                </a>
-            </div>
+  const addCustomButtons = () => {
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.id = "customButtonsContainer";
+    buttonsContainer.className = "flex gap-2 px-2 mb-2";
 
-            <div id="customCheckAllButton">
-                <a
-                    class="flex px-3 min-h-[44px] py-1 gap-3 transition-colors duration-200 dark:text-white cursor-pointer text-sm rounded-md border-2 border-transparent gizmo:min-h-0 hover:bg-gray-500/10 h-11 gizmo:h-10 gizmo:rounded-lg w-11 flex-shrink-0 items-center justify-center bg-white dark:bg-transparent"
-                    style="border-image: linear-gradient(45deg, #0070ff, #111313) 1;">
-                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-                        stroke-linejoin="round" class="icon-sm" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M5 12h14M5 16h14"></path>
-                    </svg>
-                    <span class="sr-only">Check All</span>
-                </a>
-            </div>
-        </div>
+    buttonsContainer.innerHTML = `
+  <div id="customOpenBulkDeleteDialog" class="cursor-pointer gradient-border-btn-red h-10 w-10">
+    <div class="flex items-center justify-center h-full w-full rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300">
+      <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" class="icon-sm" height="1em" width="1em">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    </div>
+  </div>
+  <div id="customCheckAllButton" class="cursor-pointer gradient-border-btn-blue h-10 w-10">
+    <div class="flex items-center justify-center h-full w-full rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300">
+      <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" class="icon-sm" height="1em" width="1em">
+        <path d="M5 12h14M5 16h14"></path>
+      </svg>
+    </div>
+  </div>
     `;
 
-    document.querySelector("nav").querySelector("div").insertAdjacentHTML("afterend", html);
+    const sidebarHeader = document.getElementById("sidebar-header");
+    if (sidebarHeader) {
+      sidebarHeader.parentNode.insertBefore(buttonsContainer, sidebarHeader.nextSibling);
+    }
 
     document.getElementById("customOpenBulkDeleteDialog").onclick = showDeleteDialog;
+
     document.getElementById("customCheckAllButton").onclick = () => {
-        for(let i = 0; i < allInputElements.length; i++){
-             allInputElements[i].click();
+      // Check if any checkbox is unchecked
+      const hasUnchecked = allInputElements.some(input =>
+        !input.disabled && !input.checked
+      );
+
+      // Toggle all checkboxes
+      allInputElements.forEach(input => {
+        if (!input.disabled) {
+          input.checked = hasUnchecked;
+
+          // Manually trigger change event
+          const event = new Event('change', {
+            bubbles: true,
+            cancelable: true,
+          });
+          input.dispatchEvent(event);
         }
+      });
+
     };
-};
-
-
-  const initializeIfNeeded = () => {
-    if(!document.getElementById("customOpenBulkDeleteDialog")){
-        initGlobalData();
-        addCustomButtons();
-    }
-      addCheckboxesToChatsIfNeeded();
-
   };
 
-  const ready = ()=>{
-    return document.querySelector('nav li');
-  }
+  const initializeIfNeeded = () => {
+    if (!document.getElementById("customOpenBulkDeleteDialog")) {
+      initGlobalData();
+      addCustomButtons();
+    }
 
-  setInterval(() => {
-    if (ready()) {
+    // Reset processing flags for all chats
+    document.querySelectorAll('a[href*="/c/"]').forEach(chat => {
+      delete chat.dataset.processed;
+    });
+
+    addCheckboxesToChatsIfNeeded();
+  };
+
+  const ready = () => {
+    return document.querySelector('a[href*="/c/"]');
+  };
+
+  // MutationObserver to handle dynamic content
+  const observer = new MutationObserver((mutations) => {
+    let needsUpdate = false;
+
+    mutations.forEach((mutation) => {
+      if (mutation.type === "childList") {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1 && (
+            node.matches('a[href*="/c/"]') ||
+            node.querySelector('a[href*="/c/"]')
+          )) {
+            needsUpdate = true;
+          }
+        });
+      }
+    });
+
+    if (needsUpdate) {
       initializeIfNeeded();
     }
-  }, 200);
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  // Initial check
+  if (ready()) {
+    initializeIfNeeded();
+  }
 })();
