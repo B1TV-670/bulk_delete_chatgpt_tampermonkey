@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         bulk_delete_chatgpt
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Add bulk delete UI to chat gpt (New UI)
 // @author       Base by Shmuel Kamensky, Updated by B1TV-670, Adapted for new UI
 // @match        https://chatgpt.com/*
@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-    let allInputElements = [];
+  let allInputElements = [];
 
   const style = document.createElement('style');
   style.textContent = `
@@ -97,21 +97,25 @@
     color: #e5e7eb;
   }
 
-.customCheckbox {
-  outline: none !important;
-  box-shadow: none !important;
-}
+  .customCheckbox {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 
-.customCheckbox:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
+  .customCheckbox:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 
-.customCheckbox:active {
-  outline: none !important;
-  box-shadow: none !important;
-}
+  .customCheckbox:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 
+  /* Adjustments for new UI */
+  .__menu-item {
+    position: relative;
+  }
   `;
   document.head.appendChild(style);
 
@@ -124,20 +128,17 @@
     globalData.extensionOutdated = false;
   };
 
-
   const checkBoxHandler = (e) => {
-    // Prevent navigation on click
     e.stopPropagation();
     e.preventDefault();
 
-      console.error("CHECKBOX CHECKED");
     const input = e.target;
     const chatItem = input.closest("a[href*='/c/']");
     if (!chatItem) return;
 
     const href = chatItem.getAttribute("href");
     const chatId = href.split("/c/")[1]?.split("?")[0];
-    const titleSpan = chatItem.querySelector(".truncate span");
+    const titleSpan = chatItem.querySelector(".truncate span") || chatItem.querySelector(".truncate");
     const title = titleSpan ? titleSpan.textContent : "Untitled";
 
     if (!chatId) {
@@ -145,27 +146,19 @@
       input.disabled = true;
       input.style.opacity = 0.5;
       globalData.extensionOutdated = true;
-        console.error("NO CHAT ID FOUND");
       return;
-    } else {
-console.error("CHAT ID FOUND!");
     }
 
-  let freshInput = null;
-  allInputElements.forEach(currentInput => {
-    if (currentInput.id === chatId) {
-      freshInput = currentInput;
+    let freshInput = null;
+    allInputElements.forEach(currentInput => {
+      if (currentInput.id === chatId) {
+        freshInput = currentInput;
+      }
+    });
+
+    if (!freshInput) {
+      freshInput = input;
     }
-  });
-
-      if(!freshInput){
-          console.error("I REPLACED FRESH WITH OLD INPUT");
-          freshInput = input;
-      }
-
-      if (e.type === "click") {
-
-      }
 
     // Update selection based on checkbox state
     if (freshInput.checked) {
@@ -179,10 +172,6 @@ console.error("CHAT ID FOUND!");
     }
   };
 
-  const manuallyCheckCheckbox = (inputF) => {
-      inputF.checked = !inputF.checked;
-  };
-
   const addCheckboxesToChatsIfNeeded = () => {
     allInputElements = []; // Reset the array
     const chats = document.querySelectorAll('a[href*="/c/"]');
@@ -191,7 +180,20 @@ console.error("CHAT ID FOUND!");
       if (chat.dataset.processed) return;
       chat.dataset.processed = "true";
 
-      const container = chat.querySelector(".flex.min-w-0.grow.items-center.gap-2");
+      // More robust container detection
+      let container = null;
+      const possibleContainers = [
+        chat.querySelector('.flex.min-w-0.grow.items-center'),
+        chat.querySelector('.truncate').parentElement
+      ];
+
+      for (const possibleContainer of possibleContainers) {
+        if (possibleContainer) {
+          container = possibleContainer;
+          break;
+        }
+      }
+
       if (!container) return;
 
       let inputElement = container.querySelector(".customCheckbox");
@@ -200,49 +202,35 @@ console.error("CHAT ID FOUND!");
         inputElement = document.createElement("input");
         inputElement.setAttribute("type", "checkbox");
         inputElement.setAttribute("class", "customCheckbox");
-        // Add both click and change event listeners
         inputElement.addEventListener('change', checkBoxHandler);
 
-          const chatItem = chat;
-          if (chatItem) {
-              const href = chatItem.getAttribute("href");
-              const chatId = href.split("/c/")[1]?.split("?")[0];
-              const titleSpan = chatItem.querySelector(".truncate span");
-              const title = titleSpan ? titleSpan.textContent : "Untitled";
+        const href = chat.getAttribute("href");
+        const chatId = href.split("/c/")[1]?.split("?")[0];
+        const titleSpan = chat.querySelector(".truncate span") || chat.querySelector(".truncate");
+        const title = titleSpan ? titleSpan.textContent : "Untitled";
 
-              if (!chatId) {
-                  console.error("NO CHAT ID FOUND WHILE MOUNTING CHECKBOXES");
-              } else {
-                  console.error("CHAT ID FOUND WHILE MOUNTING CHECKBOXES");
+        if (chatId) {
+          inputElement.id = chatId;
+          container.insertBefore(inputElement, container.firstChild);
 
-                  inputElement.id = chatId;
-                  container.insertBefore(inputElement, container.firstChild);
+          // Add click handler for the chat item
+          chat.onclick = (e) => {
+            if (e.target.tagName !== 'INPUT' && !e.target.closest('input')) {
+              e.stopPropagation();
+              e.preventDefault();
 
+              // Toggle the checkbox
+              inputElement.checked = !inputElement.checked;
 
-    document.getElementById(chatId).onclick = (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-
-
-      // Toggle all checkboxes
-      allInputElements.forEach(input => {
-        if (input.id === chatId) {
-          input.checked = !input.checked;
-
-          // Manually trigger change event
-          const event = new Event('change', {
-            bubbles: true,
-            cancelable: true,
-          });
-          input.dispatchEvent(event);
+              // Trigger change event
+              const event = new Event('change', {
+                bubbles: true,
+                cancelable: true,
+              });
+              inputElement.dispatchEvent(event);
+            }
+          };
         }
-      });
-
-
-    };
-              }
-          }
-
       }
 
       // Store reference to this checkbox
@@ -513,9 +501,13 @@ console.error("CHAT ID FOUND!");
   </div>
     `;
 
-    const sidebarHeader = document.getElementById("sidebar-header");
+    // More robust placement of buttons container
+    const sidebarHeader = document.querySelector(".bg-token-bg-elevated-secondary");
     if (sidebarHeader) {
-      sidebarHeader.parentNode.insertBefore(buttonsContainer, sidebarHeader.nextSibling);
+      const headerDiv = sidebarHeader.querySelector("div > div:first-child");
+      if (headerDiv) {
+        headerDiv.parentNode.insertBefore(buttonsContainer, headerDiv.nextSibling);
+      }
     }
 
     document.getElementById("customOpenBulkDeleteDialog").onclick = showDeleteDialog;
@@ -539,7 +531,6 @@ console.error("CHAT ID FOUND!");
           input.dispatchEvent(event);
         }
       });
-
     };
   };
 
@@ -591,5 +582,12 @@ console.error("CHAT ID FOUND!");
   // Initial check
   if (ready()) {
     initializeIfNeeded();
+  } else {
+    // If not ready, check again after a delay
+    setTimeout(() => {
+      if (ready()) {
+        initializeIfNeeded();
+      }
+    }, 1000);
   }
 })();
